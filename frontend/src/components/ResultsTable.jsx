@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import JsonViewer from './JsonViewer';
+import JsonSearch from './JsonSearch';
 
 const PREVIEW_COLS = {
   workflowdatastudio: ['wf_name', 'wf_caption', 'ownerrule'],
@@ -108,7 +109,7 @@ function RowDetail({ row, jsonColumns }) {
                     )}
                     {isExpanded && (
                       <div className="json-expanded">
-                        <JsonViewer value={value} />
+                        <JsonSearch value={value} colName={col} />
                       </div>
                     )}
                   </div>

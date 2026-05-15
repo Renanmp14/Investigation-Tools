@@ -454,6 +454,69 @@ body {
 }
 .ss-item-delete:hover { color: var(--error); }
 
+/* ─── JSON Search ─── */
+.json-search-wrap { display: flex; flex-direction: column; }
+
+.json-search-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 8px 10px; background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.json-search-input {
+  flex: 1; min-width: 160px; padding: 5px 8px;
+  background: var(--bg-3); border: 1px solid var(--border-light);
+  border-radius: var(--radius); color: var(--text-1); font-size: 12px; outline: none;
+}
+.json-search-input:focus { border-color: var(--accent); }
+
+.json-search-type {
+  padding: 5px 8px; background: var(--bg-3); border: 1px solid var(--border-light);
+  border-radius: var(--radius); color: var(--text-1); font-size: 12px; outline: none; cursor: pointer;
+}
+.json-search-type option { background: var(--bg-3); }
+.json-search-type:focus { border-color: var(--accent); }
+
+.json-match-count { font-size: 11px; padding: 0 4px; min-width: 80px; text-align: center; }
+
+.json-matches-list { overflow-y: auto; max-height: 380px; background: var(--bg-0); }
+
+.json-match-item {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 6px 12px; cursor: pointer;
+  border-bottom: 1px solid var(--border); font-size: 12px;
+  font-family: var(--font-mono); transition: background 0.1s;
+}
+.json-match-item:hover { background: var(--bg-hover); }
+.json-match-item.current {
+  background: var(--accent-glow);
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+}
+
+.match-path {
+  color: var(--text-3); font-size: 10px; flex-shrink: 0;
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.match-eq { color: var(--text-3); flex-shrink: 0; }
+.match-value { color: var(--text-1); word-break: break-all; flex: 1; }
+.match-in-key { color: var(--text-2); font-style: italic; }
+.match-badge {
+  margin-left: auto; font-size: 9px; padding: 1px 5px;
+  background: rgba(251,146,60,0.15); color: #fb923c;
+  border-radius: 3px; flex-shrink: 0;
+}
+
+.json-highlight {
+  background: #fbbf24; color: #000;
+  border-radius: 2px; padding: 0 1px; font-weight: 700;
+}
+
+.json-expanded-inner {
+  padding: 10px; background: var(--bg-0);
+  max-height: 380px; overflow-y: auto;
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-1); }
