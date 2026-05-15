@@ -7,3 +7,5 @@ dist-app/
 config/db.json
 *.log
 .env
+build_V1/
+build_V1.zip

@@ -302,8 +302,10 @@ body {
 .json-preview:hover { color: var(--accent); }
 
 .json-expanded {
-  padding: 10px; background: var(--bg-0);
-  max-height: 400px; overflow-y: auto;
+  background: var(--bg-0);
+  max-height: 520px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
 }
 
 /* ─── JSON Viewer ─── */
@@ -342,16 +344,119 @@ body {
 .page-btn.active { background: var(--accent-dim); border-color: var(--accent); }
 
 /* ─── SQL Editor ─── */
-.sql-editor { display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 16px; gap: 12px; }
-.sql-textarea {
-  width: 100%; height: 180px; resize: vertical;
-  background: var(--bg-0); border: 1px solid var(--border-light);
-  border-radius: var(--radius); color: var(--text-1);
-  font-family: var(--font-mono); font-size: 13px; padding: 12px;
-  outline: none; line-height: 1.5;
+.sql-editor { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+/* SQL tab bar */
+.sql-tabs {
+  display: flex; align-items: flex-end; gap: 2px;
+  padding: 8px 16px 0; flex-shrink: 0;
+  background: var(--bg-1); border-bottom: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
 }
-.sql-textarea:focus { border-color: var(--accent); }
-.sql-toolbar { display: flex; align-items: center; gap: 8px; }
+.sql-tabs::-webkit-scrollbar { display: none; }
+
+.sql-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px 5px 12px;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-bottom: none; border-radius: 4px 4px 0 0;
+  cursor: pointer; font-size: 11px; color: var(--text-3);
+  white-space: nowrap; user-select: none; flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
+  max-width: 160px;
+}
+.sql-tab:hover { background: var(--bg-3); color: var(--text-1); }
+.sql-tab.active {
+  background: var(--bg-0); color: var(--text-1);
+  border-color: var(--border-light); border-bottom-color: var(--bg-0);
+  z-index: 1;
+}
+
+.sql-tab-name {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px;
+}
+
+.sql-tab-close {
+  background: none; border: none; color: var(--text-3);
+  cursor: pointer; padding: 0 2px; font-size: 14px;
+  line-height: 1; flex-shrink: 0; border-radius: 2px;
+}
+.sql-tab-close:hover { color: var(--error); background: rgba(239,68,68,0.1); }
+
+.sql-tab-add {
+  padding: 5px 10px; background: none;
+  border: 1px dashed var(--border); border-bottom: none;
+  border-radius: 4px 4px 0 0; color: var(--text-3);
+  cursor: pointer; font-size: 16px; line-height: 1;
+  flex-shrink: 0; transition: color 0.1s;
+}
+.sql-tab-add:hover { color: var(--accent); border-color: var(--accent); }
+
+/* Inner content area (below tabs) */
+.sql-editor-inner {
+  display: flex; flex-direction: column; flex: 1;
+  overflow: hidden; padding: 16px; gap: 12px;
+}
+
+/* Syntax-highlighted editor */
+.sql-editor-area {
+  position: relative;
+  height: 200px; min-height: 120px;
+  resize: vertical; overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  background: var(--bg-0);
+  flex-shrink: 0;
+}
+.sql-editor-area:focus-within { border-color: var(--accent); }
+
+.sql-highlight-pre,
+.sql-textarea {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+}
+
+.sql-highlight-pre {
+  color: var(--text-1);
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  border: none;
+}
+
+.sql-textarea-overlay {
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: var(--text-1) !important;
+  border: none !important;
+  outline: none !important;
+  resize: none !important;
+  z-index: 2;
+}
+.sql-textarea-overlay::selection { background: rgba(99,102,241,0.35); }
+.sql-textarea-overlay::-moz-selection { background: rgba(99,102,241,0.35); }
+
+/* SQL syntax token colors */
+.sql-kw  { color: #569cd6; font-weight: 600; }
+.sql-fn  { color: #dcdcaa; }
+.sql-str { color: #ce9178; }
+.sql-cmt { color: #6a9955; font-style: italic; }
+.sql-num { color: #b5cea8; }
+.sql-ident { color: #9cdcfe; }
+
+.sql-toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+.sql-toolbar-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 2px; }
+.sql-hint { color: var(--text-3); font-size: 11px; margin-left: auto; }
+
 .sql-results { flex: 1; overflow-y: auto; }
 .sql-stats { font-size: 11px; color: var(--text-2); margin-bottom: 8px; }
 .sql-stats span { color: var(--success); }
@@ -460,7 +565,7 @@ body {
 .json-search-bar {
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   padding: 8px 10px; background: var(--bg-1);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 
 .json-search-input {
@@ -479,7 +584,26 @@ body {
 
 .json-match-count { font-size: 11px; padding: 0 4px; min-width: 80px; text-align: center; }
 
-.json-matches-list { overflow-y: auto; max-height: 380px; background: var(--bg-0); }
+/* Full JSON viewer — always shown */
+.json-expanded-inner {
+  padding: 10px; background: var(--bg-0);
+  max-height: 300px; overflow-y: auto; flex-shrink: 0;
+}
+
+/* Match list panel below the viewer */
+.json-matches-panel {
+  border-top: 2px solid var(--border);
+  background: var(--bg-1); flex-shrink: 0;
+}
+
+.json-matches-panel-header {
+  padding: 5px 12px;
+  font-size: 10px; font-weight: 600; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  background: var(--bg-2); border-bottom: 1px solid var(--border);
+}
+
+.json-matches-list { overflow-y: auto; max-height: 200px; background: var(--bg-0); }
 
 .json-match-item {
   display: flex; align-items: baseline; gap: 6px;
@@ -512,10 +636,187 @@ body {
   border-radius: 2px; padding: 0 1px; font-weight: 700;
 }
 
-.json-expanded-inner {
-  padding: 10px; background: var(--bg-0);
-  max-height: 380px; overflow-y: auto;
+/* ─── Code Viewer (JS / Lua syntax highlighting) ─── */
+.code-viewer { display: flex; flex-direction: column; background: var(--bg-0); }
+
+.code-search-bar {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  padding: 6px 10px; background: var(--bg-1);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
+.code-lang-badge {
+  font-size: 9px; font-weight: 700; padding: 2px 6px;
+  background: rgba(99,102,241,0.18); color: var(--accent);
+  border-radius: 3px; text-transform: uppercase; letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+.code-search-input {
+  flex: 1; min-width: 140px; padding: 4px 7px;
+  background: var(--bg-3); border: 1px solid var(--border-light);
+  border-radius: var(--radius); color: var(--text-1); font-size: 11px; outline: none;
+}
+.code-search-input:focus { border-color: var(--accent); }
+.code-match-count { font-size: 11px; padding: 0 4px; min-width: 80px; text-align: center; white-space: nowrap; }
+
+.code-content { overflow-y: auto; }
+
+.code-pre {
+  margin: 0; padding: 10px 12px;
+  font-family: var(--font-mono); font-size: 12px; line-height: 1.6;
+  color: var(--text-2); white-space: pre-wrap; word-break: break-all;
+}
+
+/* Code token colors — shared by JS, Lua, SQL, JSON */
+.ck-kw  { color: #569cd6; font-weight: 600; }        /* keywords */
+.ck-bi  { color: #dcdcaa; }                           /* builtins / functions */
+.ck-str { color: #ce9178; }                           /* strings */
+.ck-cmt { color: #6a9955; font-style: italic; }       /* comments */
+.ck-num { color: #b5cea8; }                           /* numbers */
+.ck-key { color: #c084fc; }                           /* JSON keys */
+
+/* Search highlight */
+.code-hl        { background: #fbbf24; color: #000; border-radius: 2px; padding: 0 1px; }
+.code-hl.active { background: #f97316; color: #fff; }
+
+.code-empty { padding: 10px 12px; font-size: 11px; color: var(--text-3); }
+
+/* Language selector in JSON field header */
+.lang-seg {
+  display: flex; border: 1px solid var(--border-light);
+  border-radius: var(--radius); overflow: hidden; flex-shrink: 0;
+}
+.lang-seg-btn {
+  padding: 2px 8px; font-size: 10px; font-weight: 600;
+  background: var(--bg-3); color: var(--text-3);
+  border: none; cursor: pointer; transition: all 0.1s;
+  letter-spacing: 0.3px;
+}
+.lang-seg-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+.lang-seg-btn.active { background: var(--accent-dim); color: #fff; }
+.lang-seg-btn + .lang-seg-btn { border-left: 1px solid var(--border-light); }
+
+/* Code tag badge */
+.tag-code { background: rgba(220,220,170,0.15); color: #dcdcaa; }
+
+/* ─── Workflow Viewer ─── */
+.wf-viewer {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 4px;
+  display: flex; flex-direction: column;
+  background: var(--bg-1);
+}
+
+.wf-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 7px 12px; background: var(--bg-2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.wf-title { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.wf-meta  { font-size: 11px; color: var(--text-3); }
+
+.wf-body {
+  display: flex; flex: 1; overflow: hidden;
+  min-height: 260px; max-height: 420px;
+}
+
+/* Scrollable canvas area */
+.wf-canvas-wrap {
+  flex: 1; overflow: auto; background: var(--bg-0);
+  position: relative; min-width: 0;
+}
+
+.wf-canvas {
+  position: relative; /* contains absolutely-positioned nodes */
+}
+
+/* SVG edge overlay */
+.wf-svg {
+  position: absolute; top: 0; left: 0;
+  pointer-events: none; overflow: visible;
+}
+
+/* Node cards */
+.wf-node {
+  position: absolute;
+  padding: 6px 10px;
+  background: var(--bg-2); border: 1px solid var(--border-light);
+  border-radius: var(--radius); cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  user-select: none; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center;
+  box-sizing: border-box;
+}
+.wf-node:hover {
+  border-color: var(--accent-dim); background: var(--bg-3);
+}
+.wf-node.related {
+  border-color: rgba(99,102,241,0.45);
+  background: var(--bg-3);
+}
+.wf-node.selected {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.wf-node.has-script { border-left: 3px solid #dcdcaa; }
+.wf-node.has-script.selected { border-left-color: var(--accent); }
+
+.wf-node-label {
+  font-size: 11px; font-weight: 600; color: var(--text-1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wf-node-type {
+  font-size: 9px; color: var(--text-3); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wf-node-badge {
+  position: absolute; top: 3px; right: 4px;
+  font-size: 8px; font-weight: 700; color: #dcdcaa;
+  background: rgba(220,220,170,0.12); border-radius: 2px;
+  padding: 1px 3px; line-height: 1.4;
+}
+
+/* Right panel */
+.wf-panel {
+  width: 0; flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  overflow: hidden; transition: width 0.2s ease;
+  display: flex; flex-direction: column;
+  background: var(--bg-1);
+}
+.wf-panel.open { width: 310px; }
+
+.wf-panel-hint {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  text-align: center; font-size: 11px; color: var(--text-3);
+  padding: 12px; line-height: 1.6;
+}
+
+.wf-panel-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 8px; padding: 8px 10px;
+  background: var(--bg-2); border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.wf-panel-name {
+  font-size: 12px; font-weight: 600; color: var(--text-1);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wf-panel-type { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+.wf-panel-lang { padding: 6px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.wf-panel-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+.wf-no-script {
+  padding: 20px 12px; font-size: 11px;
+  color: var(--text-3); text-align: center;
+}
+
+.wf-empty {
+  padding: 12px 16px; font-size: 12px;
+  color: var(--text-3); background: var(--bg-1);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.wf-empty code { color: var(--accent); font-family: var(--font-mono); }
 
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

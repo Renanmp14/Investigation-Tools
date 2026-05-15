@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import { api } from '../api';
 import { persistence } from '../utils/persistence';
 
@@ -29,13 +29,49 @@ export function AppProvider({ children }) {
     meta: null,
   });
 
-  const [sqlState, setSqlState] = useState({
-    query: '',
-    results: null,
-    loading: false,
-    error: null,
-    duration: null,
-  });
+  const sqlTabCounter = useRef(2);
+  const [sqlTabs, setSqlTabs] = useState([
+    { id: 1, name: 'Query 1', query: '', results: null, loading: false, error: null, duration: null },
+  ]);
+  const [activeSqlTabId, setActiveSqlTabId] = useState(1);
+
+  const activeSqlTab = useMemo(
+    () => sqlTabs.find(t => t.id === activeSqlTabId) ?? sqlTabs[0],
+    [sqlTabs, activeSqlTabId]
+  );
+
+  const updateSqlTab = useCallback((id, updates) => {
+    setSqlTabs(tabs => tabs.map(t => t.id === id ? { ...t, ...updates } : t));
+  }, []);
+
+  const addSqlTab = useCallback((query = '', name = null) => {
+    const id = sqlTabCounter.current++;
+    setSqlTabs(tabs => [...tabs, {
+      id,
+      name: name ?? `Query ${id}`,
+      query,
+      results: null,
+      loading: false,
+      error: null,
+      duration: null,
+    }]);
+    setActiveSqlTabId(id);
+  }, []);
+
+  const closeSqlTab = useCallback((idToClose) => {
+    setSqlTabs(prev => {
+      if (prev.length === 1) {
+        return [{ ...prev[0], query: '', results: null, error: null, loading: false, duration: null }];
+      }
+      const idx = prev.findIndex(t => t.id === idToClose);
+      const newTabs = prev.filter(t => t.id !== idToClose);
+      setActiveSqlTabId(curr => {
+        if (curr !== idToClose) return curr;
+        return newTabs[Math.min(idx, newTabs.length - 1)].id;
+      });
+      return newTabs;
+    });
+  }, []);
 
   const connect = useCallback(async (config) => {
     const data = await api.connect(config);
@@ -72,15 +108,15 @@ export function AppProvider({ children }) {
     }
   }, [builtInTables, customTables]);
 
-  const executeSQL = useCallback(async (sql) => {
-    setSqlState(s => ({ ...s, loading: true, error: null, results: null }));
+  const executeSQL = useCallback(async (tabId, sql) => {
+    updateSqlTab(tabId, { loading: true, error: null, results: null });
     try {
       const data = await api.execute(sql);
-      setSqlState(s => ({ ...s, loading: false, results: data.data, duration: data.duration }));
+      updateSqlTab(tabId, { loading: false, results: data.data, duration: data.duration });
     } catch (err) {
-      setSqlState(s => ({ ...s, loading: false, error: err.message }));
+      updateSqlTab(tabId, { loading: false, error: err.message });
     }
-  }, []);
+  }, [updateSqlTab]);
 
   const addCustomTable = useCallback((table) => {
     setCustomTables(prev => {
@@ -140,7 +176,8 @@ export function AppProvider({ children }) {
       showTableManager, setShowTableManager,
       addCustomTable, updateCustomTable, removeCustomTable,
       searchState, setSearchState, search,
-      sqlState, setSqlState, executeSQL,
+      sqlTabs, activeSqlTabId, setActiveSqlTabId,
+      activeSqlTab, updateSqlTab, addSqlTab, closeSqlTab, executeSQL,
       savedSearches, addSavedSearch, removeSavedSearch, importSavedSearches,
     }}>
       {children}

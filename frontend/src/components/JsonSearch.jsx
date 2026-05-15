@@ -117,6 +117,7 @@ export default function JsonSearch({ value }) {
 
   return (
     <div className="json-search-wrap">
+      {/* Search bar */}
       <div className="json-search-bar">
         <input
           className="json-search-input"
@@ -151,38 +152,49 @@ export default function JsonSearch({ value }) {
           </>
         )}
 
-        {hasSearch && matches.length > 0 && (
+        {hasSearch && (
           <button className="btn btn-sm" onClick={() => setTerm('')} title="Limpar busca">×</button>
         )}
       </div>
 
-      {hasSearch && matches.length > 0 ? (
-        <div className="json-matches-list">
-          {matches.map((m, i) => (
-            <div
-              key={i}
-              ref={el => { matchRefs.current[i] = el; }}
-              className={`json-match-item ${i === currentIdx ? 'current' : ''}`}
-              onClick={() => setCurrentIdx(i)}
-            >
-              <span className="match-path" title={m.path}>{m.path}</span>
-              <span className="match-eq"> = </span>
-              <span className={`match-value ${m.matchIn === 'key' ? 'match-in-key' : ''}`}>
-                <HighlightText
-                  text={displayValue(m.value)}
-                  term={m.matchIn === 'value' ? term : ''}
-                  filterType={filterType}
-                />
-              </span>
-              {m.matchIn === 'key' && (
-                <span className="match-badge">key</span>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="json-expanded-inner">
-          <JsonViewer value={value} />
+      {/* Full JSON viewer — always visible, with highlights when searching */}
+      <div className="json-expanded-inner">
+        <JsonViewer
+          value={value}
+          searchTerm={hasSearch ? term : ''}
+          filterType={filterType}
+        />
+      </div>
+
+      {/* Match list panel — shown below the viewer when there are results */}
+      {hasSearch && matches.length > 0 && (
+        <div className="json-matches-panel">
+          <div className="json-matches-panel-header">
+            {matches.length} resultado{matches.length !== 1 ? 's' : ''} — clique para navegar
+          </div>
+          <div className="json-matches-list">
+            {matches.map((m, i) => (
+              <div
+                key={i}
+                ref={el => { matchRefs.current[i] = el; }}
+                className={`json-match-item ${i === currentIdx ? 'current' : ''}`}
+                onClick={() => setCurrentIdx(i)}
+              >
+                <span className="match-path" title={m.path}>{m.path || '(root)'}</span>
+                <span className="match-eq"> = </span>
+                <span className={`match-value ${m.matchIn === 'key' ? 'match-in-key' : ''}`}>
+                  <HighlightText
+                    text={displayValue(m.value)}
+                    term={m.matchIn === 'value' ? term : ''}
+                    filterType={filterType}
+                  />
+                </span>
+                {m.matchIn === 'key' && (
+                  <span className="match-badge">key</span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

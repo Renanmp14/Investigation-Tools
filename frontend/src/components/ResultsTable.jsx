@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import JsonViewer from './JsonViewer';
 import JsonSearch from './JsonSearch';
+import WorkflowViewer from './WorkflowViewer';
+import CodeViewer from './CodeViewer';
+
+// Columns that default to JavaScript rendering instead of JSON tree
+const JS_COLUMNS = {
+  actionsstudio: new Set(['precommand', 'poscommand']),
+  formstudio:    new Set(['precommand', 'poscommand']),
+  liststudio:    new Set(['filter', 'posfilter']),
+};
+
+function defaultLang(tableId, col) {
+  return JS_COLUMNS[tableId]?.has(col) ? 'js' : 'json';
+}
 
 const PREVIEW_COLS = {
   workflowdatastudio: ['wf_name', 'wf_caption', 'ownerrule'],
@@ -42,8 +55,13 @@ function CellValue({ value }) {
   return <span>{str}</span>;
 }
 
-function RowDetail({ row, jsonColumns }) {
+function RowDetail({ row, jsonColumns, tableId }) {
   const [expandedJson, setExpandedJson] = useState(new Set());
+  const [fieldLangs, setFieldLangs] = useState(() => {
+    const langs = {};
+    jsonColumns.forEach(col => { langs[col] = defaultLang(tableId, col); });
+    return langs;
+  });
 
   const nonJsonFields = Object.entries(row).filter(([k]) => !jsonColumns.includes(k));
   const jsonFields = Object.entries(row).filter(
@@ -58,12 +76,28 @@ function RowDetail({ row, jsonColumns }) {
     });
   }
 
+  function setLang(col, lang) {
+    setFieldLangs(prev => ({ ...prev, [col]: lang }));
+  }
+
+  const isWorkflow = tableId === 'workflowdatastudio';
+
   return (
     <tr>
       <td colSpan={100} style={{ padding: 0 }}>
         <div className="row-expander">
+          {/* Workflow diagram — only for workflowdatastudio */}
+          {isWorkflow && (
+            <WorkflowViewer
+              nodesRaw={row.nodes}
+              edgesRaw={row.edges}
+              workflowRaw={row.workflow}
+              title={row.wf_name || row.name}
+            />
+          )}
+
           {/* Non-JSON fields */}
-          <h4>Fields</h4>
+          <h4 style={{ marginTop: isWorkflow ? 16 : 0 }}>Fields</h4>
           <div className="expander-grid">
             {nonJsonFields.map(([key, value]) => (
               <div key={key} className="field-block">
@@ -83,14 +117,32 @@ function RowDetail({ row, jsonColumns }) {
               <h4 style={{ marginTop: 16 }}>JSON Fields</h4>
               {jsonFields.map(([col, value]) => {
                 const isExpanded = expandedJson.has(col);
+                const lang = fieldLangs[col] ?? 'json';
+                const isCode = lang !== 'json';
+                // Only show lang toggle for tables that have code fields
+                const showLangToggle = JS_COLUMNS[tableId]?.has(col);
                 return (
                   <div key={col} className="json-field-block">
                     <div className="json-field-header">
                       <span className="json-field-name">
                         {col}
-                        <span className="tag tag-json">JSON</span>
+                        <span className={`tag ${isCode ? 'tag-code' : 'tag-json'}`}>
+                          {isCode ? lang.toUpperCase() : 'JSON'}
+                        </span>
                       </span>
                       <div className="json-field-actions">
+                        {showLangToggle && (
+                          <div className="lang-seg">
+                            <button
+                              className={`lang-seg-btn${lang === 'json' ? ' active' : ''}`}
+                              onClick={() => setLang(col, 'json')}
+                            >JSON</button>
+                            <button
+                              className={`lang-seg-btn${lang === 'js' ? ' active' : ''}`}
+                              onClick={() => setLang(col, 'js')}
+                            >JS</button>
+                          </div>
+                        )}
                         <button className="btn btn-sm" onClick={() => copyToClipboard(value)} title="Copy to clipboard">
                           Copy
                         </button>
@@ -109,7 +161,10 @@ function RowDetail({ row, jsonColumns }) {
                     )}
                     {isExpanded && (
                       <div className="json-expanded">
-                        <JsonSearch value={value} colName={col} />
+                        {isCode
+                          ? <CodeViewer code={value} language={lang} />
+                          : <JsonSearch value={value} colName={col} />
+                        }
                       </div>
                     )}
                   </div>
@@ -174,7 +229,7 @@ export default function ResultsTable({ tableId, results, meta }) {
                 ))}
               </tr>,
               isExpanded && (
-                <RowDetail key={`det-${rowId}`} row={row} jsonColumns={jsonColumns} />
+                <RowDetail key={`det-${rowId}`} row={row} jsonColumns={jsonColumns} tableId={tableId} />
               ),
             ];
           })}
