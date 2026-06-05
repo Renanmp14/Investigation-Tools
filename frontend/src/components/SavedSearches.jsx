@@ -49,6 +49,14 @@ export default function SavedSearches({ currentSearch, onLoad }) {
     e.target.value = '';
   }
 
+  function formatMeta(s) {
+    if (s.conditions) {
+      const condSummary = s.conditions.map(c => `${c.column}: "${c.value}"`).join(` ${s.logic ?? 'AND'} `);
+      return `${s.table} · ${condSummary}`;
+    }
+    return `${s.table} · ${s.column} · ${s.filterType}: "${s.value}"`;
+  }
+
   return (
     <div className="saved-searches-wrap" ref={panelRef}>
       <button
@@ -99,9 +107,7 @@ export default function SavedSearches({ currentSearch, onLoad }) {
               <div key={s.id} className="ss-item">
                 <div className="ss-item-info" onClick={() => { onLoad(s); setIsOpen(false); }}>
                   <div className="ss-item-name">{s.name}</div>
-                  <div className="ss-item-meta">
-                    {s.table} · {s.column} · {s.filterType}: "{s.value}"
-                  </div>
+                  <div className="ss-item-meta">{formatMeta(s)}</div>
                 </div>
                 <button className="ss-item-delete" onClick={() => removeSavedSearch(s.id)}>×</button>
               </div>

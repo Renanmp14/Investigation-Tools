@@ -2,6 +2,8 @@ const TABLE_CONFIG = {
   workflowdatastudio: {
     label: 'Workflow Data Studio',
     searchColumns: [
+      { value: 'wf_name', label: 'nome do fluxo' },
+      { value: 'system_name', label: 'nome do sistema' },
       { value: 'nodes', label: 'nodes' },
       { value: 'edges', label: 'edges' },
       { value: 'workflow', label: 'workflow' },
@@ -12,17 +14,25 @@ const TABLE_CONFIG = {
     dataSelect: (schema) => `
       SELECT wds.workflowdatastudioid, wds.workflowstudioid,
              ws.name AS wf_name, ws.caption AS wf_caption,
+             ss.name AS system_name, ss.caption AS system_caption,
              wds.nodes, wds.edges, wds.workflow, wds.ownerrule
       FROM ${schema}.workflowdatastudio wds
       LEFT JOIN ${schema}.workflowstudio ws
-        ON wds.workflowstudioid = ws.workflowstudioid`,
+        ON wds.workflowstudioid = ws.workflowstudioid
+      LEFT JOIN ${schema}.systemstudio ss
+        ON ws.systemstudioid = ss.systemstudioid`,
     countSelect: (schema) => `
       SELECT COUNT(*) AS total
       FROM ${schema}.workflowdatastudio wds
       LEFT JOIN ${schema}.workflowstudio ws
-        ON wds.workflowstudioid = ws.workflowstudioid`,
-    searchExpr: (col, dbType) =>
-      dbType === 'postgres' ? `wds.${col}::text` : `CAST(wds.${col} AS NVARCHAR(MAX))`,
+        ON wds.workflowstudioid = ws.workflowstudioid
+      LEFT JOIN ${schema}.systemstudio ss
+        ON ws.systemstudioid = ss.systemstudioid`,
+    searchExpr: (col, dbType) => {
+      if (col === 'wf_name') return 'ws.name';
+      if (col === 'system_name') return 'ss.name';
+      return dbType === 'postgres' ? `wds.${col}::text` : `CAST(wds.${col} AS NVARCHAR(MAX))`;
+    },
     orderBy: 'ws.name',
   },
 

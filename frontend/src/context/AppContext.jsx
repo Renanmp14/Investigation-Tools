@@ -4,9 +4,23 @@ import { persistence } from '../utils/persistence';
 
 const AppContext = createContext(null);
 
+const EMPTY_CONDITION = () => ({ column: '', filterType: 'contains', value: '' });
+const INITIAL_TAB = (id) => ({
+  id,
+  name: `Search ${id}`,
+  selectedTable: null,
+  conditions: [EMPTY_CONDITION()],
+  logic: 'AND',
+  page: 1,
+  results: null,
+  loading: false,
+  error: null,
+  pagination: null,
+  meta: null,
+});
+
 export function AppProvider({ children }) {
   const [connection, setConnection] = useState({ connected: false, type: null, label: null });
-  const [selectedTable, setSelectedTable] = useState(null);
   const [activeTab, setActiveTab] = useState('search');
   const [builtInTables, setBuiltInTables] = useState([]);
   const [customTables, setCustomTables] = useState(() => persistence.loadCustomTables());
@@ -18,17 +32,44 @@ export function AppProvider({ children }) {
     [builtInTables, customTables]
   );
 
-  const [searchState, setSearchState] = useState({
-    column: '',
-    filterType: 'contains',
-    value: '',
-    results: null,
-    loading: false,
-    error: null,
-    pagination: null,
-    meta: null,
-  });
+  // ── Search Tabs ────────────────────────────────────────────────────────────────
+  const searchTabCounter = useRef(2);
+  const [searchTabs, setSearchTabs] = useState([INITIAL_TAB(1)]);
+  const [activeSearchTabId, setActiveSearchTabId] = useState(1);
 
+  const activeSearchTab = useMemo(
+    () => searchTabs.find(t => t.id === activeSearchTabId) ?? searchTabs[0],
+    [searchTabs, activeSearchTabId]
+  );
+
+  const selectedTable = activeSearchTab?.selectedTable ?? null;
+
+  const updateSearchTab = useCallback((id, updates) => {
+    setSearchTabs(tabs => tabs.map(t => t.id === id ? { ...t, ...updates } : t));
+  }, []);
+
+  const addSearchTab = useCallback(() => {
+    const id = searchTabCounter.current++;
+    setSearchTabs(tabs => [...tabs, INITIAL_TAB(id)]);
+    setActiveSearchTabId(id);
+  }, []);
+
+  const closeSearchTab = useCallback((idToClose) => {
+    setSearchTabs(prev => {
+      if (prev.length === 1) {
+        return [INITIAL_TAB(prev[0].id)];
+      }
+      const idx = prev.findIndex(t => t.id === idToClose);
+      const newTabs = prev.filter(t => t.id !== idToClose);
+      setActiveSearchTabId(curr => {
+        if (curr !== idToClose) return curr;
+        return newTabs[Math.min(idx, newTabs.length - 1)].id;
+      });
+      return newTabs;
+    });
+  }, []);
+
+  // ── SQL Tabs ───────────────────────────────────────────────────────────────────
   const sqlTabCounter = useRef(2);
   const [sqlTabs, setSqlTabs] = useState([
     { id: 1, name: 'Query 1', query: '', results: null, loading: false, error: null, duration: null },
@@ -73,6 +114,7 @@ export function AppProvider({ children }) {
     });
   }, []);
 
+  // ── Connections ────────────────────────────────────────────────────────────────
   const connect = useCallback(async (config) => {
     const data = await api.connect(config);
     const tableList = await api.tables();
@@ -84,30 +126,42 @@ export function AppProvider({ children }) {
   const disconnect = useCallback(async () => {
     await api.disconnect();
     setConnection({ connected: false, type: null, label: null });
-    setSelectedTable(null);
     setBuiltInTables([]);
-    setSearchState(s => ({ ...s, results: null, pagination: null, error: null }));
+    setSearchTabs([INITIAL_TAB(1)]);
+    setActiveSearchTabId(1);
+    searchTabCounter.current = 2;
   }, []);
 
   const selectTable = useCallback((tableId) => {
-    setSelectedTable(tableId);
-    setSearchState(s => ({ ...s, column: '', value: '', results: null, pagination: null, error: null }));
+    setSearchTabs(tabs => tabs.map(t =>
+      t.id === activeSearchTabId
+        ? { ...t, selectedTable: tableId, conditions: [EMPTY_CONDITION()], logic: 'AND', page: 1, results: null, pagination: null, error: null }
+        : t
+    ));
     setActiveTab('search');
-  }, []);
+  }, [activeSearchTabId]);
 
-  const search = useCallback(async (params) => {
-    setSearchState(s => ({ ...s, loading: true, error: null }));
+  // ── Search ─────────────────────────────────────────────────────────────────────
+  const search = useCallback(async (tabId, params) => {
+    updateSearchTab(tabId, { loading: true, error: null });
     try {
       const table = [...builtInTables, ...customTables].find(t => t.id === params.table);
       const data = table?.isCustom
-        ? await api.searchDynamic({ ...params, tableConfig: table })
+        ? await api.searchDynamic(params)
         : await api.search(params);
-      setSearchState(s => ({ ...s, loading: false, results: data.data, pagination: data.pagination, meta: data.meta }));
+      updateSearchTab(tabId, {
+        loading: false,
+        results: data.data,
+        pagination: data.pagination,
+        meta: data.meta,
+        page: params.page,
+      });
     } catch (err) {
-      setSearchState(s => ({ ...s, loading: false, error: err.message }));
+      updateSearchTab(tabId, { loading: false, error: err.message });
     }
-  }, [builtInTables, customTables]);
+  }, [builtInTables, customTables, updateSearchTab]);
 
+  // ── SQL Execute ────────────────────────────────────────────────────────────────
   const executeSQL = useCallback(async (tabId, sql) => {
     updateSqlTab(tabId, { loading: true, error: null, results: null });
     try {
@@ -118,6 +172,7 @@ export function AppProvider({ children }) {
     }
   }, [updateSqlTab]);
 
+  // ── Custom Tables ──────────────────────────────────────────────────────────────
   const addCustomTable = useCallback((table) => {
     setCustomTables(prev => {
       const updated = [...prev, { ...table, isCustom: true }];
@@ -142,6 +197,7 @@ export function AppProvider({ children }) {
     });
   }, []);
 
+  // ── Saved Searches ─────────────────────────────────────────────────────────────
   const addSavedSearch = useCallback((search) => {
     setSavedSearches(prev => {
       const updated = [...prev, { ...search, id: Date.now() }];
@@ -175,7 +231,8 @@ export function AppProvider({ children }) {
       builtInTables, customTables, allTables,
       showTableManager, setShowTableManager,
       addCustomTable, updateCustomTable, removeCustomTable,
-      searchState, setSearchState, search,
+      searchTabs, activeSearchTabId, setActiveSearchTabId,
+      activeSearchTab, updateSearchTab, addSearchTab, closeSearchTab, search,
       sqlTabs, activeSqlTabId, setActiveSqlTabId,
       activeSqlTab, updateSqlTab, addSqlTab, closeSqlTab, executeSQL,
       savedSearches, addSavedSearch, removeSavedSearch, importSavedSearches,

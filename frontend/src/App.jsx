@@ -6,7 +6,7 @@ import SqlEditor from './components/SqlEditor';
 import TableManager from './components/TableManager';
 
 function MainLayout() {
-  const { connection, selectedTable, activeTab, setActiveTab } = useApp();
+  const { connection, activeTab, setActiveTab } = useApp();
 
   if (!connection.connected) {
     return <ConnectionForm />;
@@ -31,14 +31,7 @@ function MainLayout() {
           </button>
         </div>
 
-        {activeTab === 'search' && (
-          selectedTable
-            ? <SearchPanel />
-            : <div className="welcome">
-                <div className="icon">◈</div>
-                <p>Select a table from the sidebar to search</p>
-              </div>
-        )}
+        {activeTab === 'search' && <SearchPanel />}
 
         {activeTab === 'sql' && <SqlEditor />}
       </div>
