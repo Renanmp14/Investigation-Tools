@@ -5,7 +5,9 @@ import SavedSearches from './SavedSearches';
 
 const FILTER_TYPES = [
   { value: 'contains', label: 'Contains' },
+  { value: 'notContains', label: 'Does not contain' },
   { value: 'equals', label: 'Equals' },
+  { value: 'notEquals', label: 'Not equals' },
   { value: 'startsWith', label: 'Starts with' },
   { value: 'endsWith', label: 'Ends with' },
 ];

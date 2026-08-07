@@ -21,18 +21,40 @@ function buildWhere(conditions, logic, validCols, searchExpr, dbType) {
     if (!value || !String(value).trim()) throw new Error('Search value is required for all conditions');
 
     const expr = searchExpr(column, dbType);
+    const like = dbType === 'postgres' ? 'ILIKE' : 'LIKE';
     let filterValue, op;
-    if (filterType === 'equals') {
-      filterValue = value;
-      op = '=';
-    } else {
-      op = dbType === 'postgres' ? 'ILIKE' : 'LIKE';
-      if (filterType === 'startsWith') filterValue = `${value}%`;
-      else if (filterType === 'endsWith') filterValue = `%${value}`;
-      else filterValue = `%${value}%`;
+    switch (filterType) {
+      case 'equals':
+        filterValue = value;
+        op = '=';
+        break;
+      case 'notEquals':
+        filterValue = value;
+        op = '<>';
+        break;
+      case 'startsWith':
+        filterValue = `${value}%`;
+        op = like;
+        break;
+      case 'endsWith':
+        filterValue = `%${value}`;
+        op = like;
+        break;
+      case 'notContains':
+        filterValue = `%${value}%`;
+        op = `NOT ${like}`;
+        break;
+      default:
+        filterValue = `%${value}%`;
+        op = like;
     }
     params.push(filterValue);
-    return `${expr} ${op} $${params.length}`;
+
+    // Negações: em SQL, NULL <> 'x' resulta em NULL e a linha seria descartada.
+    // O esperado pelo usuário é que registros vazios contem como "diferente".
+    const negated = filterType === 'notEquals' || filterType === 'notContains';
+    const predicate = `${expr} ${op} $${params.length}`;
+    return negated ? `(${expr} IS NULL OR ${predicate})` : predicate;
   });
 
   return { whereClause: `WHERE ${parts.join(` ${safeLogic} `)}`, params };
